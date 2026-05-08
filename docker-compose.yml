@@ -1,0 +1,156 @@
+networks:
+  red_externa:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24
+  red_dmz:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+  red_interna:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.2.0/24
+services:
+  dns:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: dns
+    networks:
+      red_externa:
+        ipv4_address: 192.168.0.2
+      red_dmz:
+        ipv4_address: 192.168.1.2
+    volumes:
+      - ./servicios/dns/config/named.conf:/etc/bind/named.conf
+      - ./servicios/dns/zones:/etc/bind/zones
+      - ./servicios/dns/data:/var/bind 
+    environment:
+      - BIND9_USER=root
+    entrypoint: /usr/sbin/named -g -c /etc/bind/named.conf
+
+  firewall:
+    build: ./servicios/firewall   # <-- esto es lo importante
+    container_name: firewall
+    privileged: true
+    networks:
+      red_externa:
+        ipv4_address: 192.168.0.10
+      red_dmz:
+        ipv4_address: 192.168.1.10
+      red_interna:
+        ipv4_address: 192.168.2.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  proxy:
+    image: nginx:alpine
+    container_name: reverse_proxy
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.5
+    volumes:
+      - ./servicios/proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - firewall
+      - dns
+
+    # Balanceadores
+  balanceador_a:
+    image: haproxy:latest
+    container_name: balanceador_a
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.6
+    volumes:
+      - ./servicios/balanceador_a/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - suitecrm_a1
+      - suitecrm_a2
+
+  balanceador_b:
+    image: haproxy:latest
+    container_name: balanceador_b
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.7
+    volumes:
+      - ./servicios/balanceador_b/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - suitecrm_b1
+      - suitecrm_b2
+
+  # Cliente A - réplica 1
+  suitecrm_a1:
+    image: suitecrm:7.15
+    container_name: suitecrm_a1
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.11
+      red_interna:
+        ipv4_address: 192.168.2.11
+    environment:
+      - DB_HOST=mysql_master
+      - DB_NAME=suitecrm_a
+      - DB_USER=suitecrm_user
+      - DB_PASS=secret
+    depends_on:
+      - dns
+      - firewall
+
+  # Cliente A - réplica 2
+  suitecrm_a2:
+    image: suitecrm:7.15
+    container_name: suitecrm_a2
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.12
+      red_interna:
+        ipv4_address: 192.168.2.12
+    environment:
+      - DB_HOST=mysql_master
+      - DB_NAME=suitecrm_a
+      - DB_USER=suitecrm_user
+      - DB_PASS=secret
+    depends_on:
+      - dns
+      - firewall
+
+  # Cliente B - réplica 1
+  suitecrm_b1:
+    image: suitecrm:7.15
+    container_name: suitecrm_b1
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.13
+      red_interna:
+        ipv4_address: 192.168.2.13
+    environment:
+      - DB_HOST=mysql_master
+      - DB_NAME=suitecrm_b
+      - DB_USER=suitecrm_user
+      - DB_PASS=secret
+    depends_on:
+      - dns
+      - firewall
+
+  # Cliente B - réplica 2
+  suitecrm_b2:
+    image: suitecrm:7.15
+    container_name: suitecrm_b2
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.14
+      red_interna:
+        ipv4_address: 192.168.2.14
+    environment:
+      - DB_HOST=mysql_master
+      - DB_NAME=suitecrm_b
+      - DB_USER=suitecrm_user
+      - DB_PASS=secret
+    depends_on:
+      - dns
+      - firewall
