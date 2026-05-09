@@ -154,3 +154,22 @@ services:
     depends_on:
       - dns
       - firewall
+
+  # ========== BROKER DE MENSAJERÍA ==========
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_VHOST: /
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.20
+    ports:
+      - "5672:5672"      # Puerto para conexión de aplicaciones
+      - "15672:15672"    # Puerto para interfaz web de gestión
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
