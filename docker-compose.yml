@@ -176,6 +176,60 @@ services:
     volumes:
       - ./data/rabbitmq:/var/lib/rabbitmq
 
+  # ========== CLÚSTER DE BASE DE DATOS ==========
+  db_master:
+    image: mariadb:10.6
+    container_name: db_master
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.30
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/db_master:/var/lib/mysql
+      - ./servicios/db/init_master.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=row --gtid-mode=ON --enforce-gtid-consistency=ON
+
+  db_slave1:
+    image: mariadb:10.6
+    container_name: db_slave1
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.31
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/db_slave1:/var/lib/mysql
+    command: --server-id=2 --log-bin=mysql-bin --binlog-format=row --gtid-mode=ON --enforce-gtid-consistency=ON --read-only=1
+    depends_on:
+      - db_master
+
+  db_slave2:
+    image: mariadb:10.6
+    container_name: db_slave2
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.32
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/db_slave2:/var/lib/mysql
+    command: --server-id=3 --log-bin=mysql-bin --binlog-format=row --gtid-mode=ON --enforce-gtid-consistency=ON --read-only=1
+    depends_on:
+      - db_master
+
+  proxysql:
+    image: proxysql/proxysql:2.5.5
+    container_name: proxysql
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.33
+    volumes:
+      - ./servicios/proxysql/proxysql.cnf:/etc/proxysql.cnf
+    depends_on:
+      - db_master
+      - db_slave1
+      - db_slave2
   productor:
     build:
       context: .
