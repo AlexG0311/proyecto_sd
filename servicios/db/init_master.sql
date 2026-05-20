@@ -1,10 +1,12 @@
-CREATE USER 'repl_user'@'%' IDENTIFIED BY 'repl_pass';
-GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+GRANT USAGE ON *.* TO 'monitor'@'%';
 
-CREATE USER 'suitecrm_user'@'%' IDENTIFIED BY 'secret';
-GRANT ALL PRIVILEGES ON *.* TO 'suitecrm_user'@'%';
+CREATE USER IF NOT EXISTS 'suitecrm_user'@'%' IDENTIFIED BY 'secret';
 
-CREATE DATABASE suitecrm_a;
-CREATE DATABASE suitecrm_b;
+CREATE DATABASE IF NOT EXISTS suitecrm_a;
+CREATE DATABASE IF NOT EXISTS suitecrm_b;
+
+GRANT ALL PRIVILEGES ON suitecrm_a.* TO 'suitecrm_user'@'%';
+GRANT ALL PRIVILEGES ON suitecrm_b.* TO 'suitecrm_user'@'%';
 
 FLUSH PRIVILEGES;

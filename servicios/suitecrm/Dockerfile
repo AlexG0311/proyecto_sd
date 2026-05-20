@@ -1,4 +1,4 @@
-FROM php:8.1-apache-bullseye
+FROM php:8.2-apache-bullseye
 
 RUN apt-get update && apt-get install -y \
     libpng-dev libjpeg-dev libfreetype6-dev libzip-dev \
@@ -29,5 +29,12 @@ RUN git clone --depth 1 --branch v7.15.1 https://github.com/salesagility/SuiteCR
     && chmod -R 775 cache custom modules themes data upload
 
 RUN echo "session.save_handler = files" > /usr/local/etc/php/conf.d/session.ini
+
+# Copiar script de entrada
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
 
 EXPOSE 80
