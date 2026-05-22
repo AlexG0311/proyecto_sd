@@ -9,7 +9,7 @@ RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'admin')
 RABBITMQ_PASS = os.getenv('RABBITMQ_PASS', 'admin123')
 
 DB_HOST = os.getenv('DB_HOST', 'proxysql')
-DB_PORT = int(os.getenv('DB_PORT', 6033))
+DB_PORT = int(os.getenv('DB_PORT', 3306))
 DB_USER = os.getenv('DB_USER', 'suitecrm_user')
 DB_PASS = os.getenv('DB_PASS', 'secret')
 DB_NAME = os.getenv('DB_NAME', 'suitecrm_a')

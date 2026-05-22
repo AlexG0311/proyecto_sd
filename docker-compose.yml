@@ -103,7 +103,7 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
     volumes:
-      - ./servicios/suitecrm/config_a/config.php:/var/www/html/config.php
+      - suitecrm_a_data:/var/www/html
     depends_on:
       - dns
       - firewall
@@ -126,7 +126,7 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
     volumes:
-      - ./servicios/suitecrm/config_a/config.php:/var/www/html/config.php
+     - suitecrm_a_data:/var/www/html
     depends_on:
       - dns
       - firewall
@@ -149,7 +149,7 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
     volumes:
-      - ./servicios/suitecrm/config_b/config.php:/var/www/html/config.php
+      - suitecrm_b_data:/var/www/html
     depends_on:
       - dns
       - firewall
@@ -172,7 +172,7 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
     volumes:
-      - ./servicios/suitecrm/config_b/config.php:/var/www/html/config.php
+      - suitecrm_b_data:/var/www/html
     depends_on:
       - dns
       - firewall
@@ -270,7 +270,7 @@ services:
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin123
       - DB_HOST=proxysql
-      - DB_PORT=6033
+      - DB_PORT=3306
       - DB_USER=suitecrm_user
       - DB_PASS=secret
       - DB_NAME=suitecrm_a

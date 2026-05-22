@@ -19,7 +19,7 @@ RUN echo '<Directory /var/www/html>\n\
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
+WORKDIR /var/www/html_backup
 
 RUN git clone --depth 1 --branch v7.15.1 https://github.com/salesagility/SuiteCRM.git . \
     && composer install --no-dev --optimize-autoloader \

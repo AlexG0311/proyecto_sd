@@ -25,6 +25,8 @@ mysql_variables=
     monitor_read_only_interval=1500
     monitor_read_only_timeout=500
     ping_interval_server=120000
+    monitor_username="monitor"    
+    monitor_password="monitor"    
     ping_timeout_server=500
     commands_stats=true
     sessions_sort=true
@@ -33,9 +35,9 @@ mysql_variables=
 
 mysql_servers =
 (
-    { address="192.168.2.30", port=3306, hostgroup=10, max_connections=100, comment="master" },
-    { address="192.168.2.31", port=3306, hostgroup=20, max_connections=100, comment="slave1" },
-    { address="192.168.2.32", port=3306, hostgroup=20, max_connections=100, comment="slave2" }
+    { address="db_master", port=3306, hostgroup=10, max_connections=100, comment="master" },
+    { address="db_slave1", port=3306, hostgroup=20, max_connections=100, comment="slave1" },
+    { address="db_slave2", port=3306, hostgroup=20, max_connections=100, comment="slave2" }
 )
 
 mysql_users =

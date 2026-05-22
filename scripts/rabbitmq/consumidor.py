@@ -16,7 +16,7 @@ def callback(ch, method, properties, body):
     # Aquí iría la lógica real de envío de correo (smtplib)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-# Esperar a que RabbitMQ esté listo
+# Esperar a que RabbitMQ esté listoa
 time.sleep(5)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials))
