@@ -178,29 +178,6 @@ services:
       - firewall
       - proxysql
 
-  productor:
-    build:
-      context: .
-      dockerfile: servicios/broker/Dockerfile
-    container_name: productor
-    networks:
-      red_interna:
-        ipv4_address: 192.168.2.21
-    command: python -u productor.py
-    depends_on:
-      - rabbitmq
-      - proxysql
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=admin
-      - RABBITMQ_PASS=admin123
-      - DB_HOST=proxysql
-      - DB_PORT=3306
-      - DB_USER=suitecrm_user
-      - DB_PASS=secret
-      - DB_NAME=suitecrm_a
-
   # BROKER DE MENSAJERÍA
   rabbitmq:
     image: rabbitmq:3.13-management
