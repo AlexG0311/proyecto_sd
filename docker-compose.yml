@@ -89,7 +89,6 @@ services:
   suitecrm_a1:
     image: suitecrm:7.15
     container_name: suitecrm_a1
-    command: apache2-foreground
     restart: unless-stopped
     networks:
       red_dmz:
@@ -112,7 +111,6 @@ services:
   suitecrm_a2:
     image: suitecrm:7.15
     container_name: suitecrm_a2
-    command: apache2-foreground
     restart: unless-stopped
     networks:
       red_dmz:
@@ -126,7 +124,7 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
     volumes:
-     - suitecrm_a_data:/var/www/html
+      - suitecrm_a_data:/var/www/html
     depends_on:
       - dns
       - firewall
@@ -134,7 +132,6 @@ services:
 
   suitecrm_b1:
     image: suitecrm:7.15
-    container_name: suitecrm_b1
     command: apache2-foreground
     restart: unless-stopped
     networks:
@@ -157,7 +154,6 @@ services:
 
   suitecrm_b2:
     image: suitecrm:7.15
-    container_name: suitecrm_b2
     command: apache2-foreground
     restart: unless-stopped
     networks:
@@ -221,6 +217,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpass
     volumes:
       - ./data/db_slave1:/var/lib/mysql
+      - ./servicios/db/init_slave.sh:/docker-entrypoint-initdb.d/init_slave.sh
     command: --server-id=2 --log-bin=mysql-bin --binlog-format=row --read-only=1
     depends_on:
       - db_master
@@ -235,6 +232,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpass
     volumes:
       - ./data/db_slave2:/var/lib/mysql
+      - ./servicios/db/init_slave.sh:/docker-entrypoint-initdb.d/init_slave.sh
     command: --server-id=3 --log-bin=mysql-bin --binlog-format=row --read-only=1
     depends_on:
       - db_master
@@ -291,3 +289,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin123
+
+volumes:          # ← agrega esto
+  suitecrm_a_data:
+  suitecrm_b_data:
+

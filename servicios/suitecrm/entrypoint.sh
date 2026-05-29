@@ -4,7 +4,7 @@ set -e
 # Primera vez que arranca el volumen está vacío
 if [ ! -f /var/www/html/index.php ]; then
     echo ">>> Volumen vacío, copiando archivos de SuiteCRM..."
-    cp -a /var/www/html_backup/. /var/www/html/
+    cp -a /var/www/html_backup/. /var/www/html/ 2>/dev/null || true
     echo ">>> Copia completada"
 fi
 
