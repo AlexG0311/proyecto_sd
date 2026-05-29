@@ -96,7 +96,7 @@ services:
       red_interna:
         ipv4_address: 192.168.2.11
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=db_haproxy
       - DB_PORT=3306
       - DB_NAME=suitecrm_a
       - DB_USER=suitecrm_user
@@ -106,7 +106,7 @@ services:
     depends_on:
       - dns
       - firewall
-      - proxysql
+      - db_haproxy
 
   suitecrm_a2:
     image: suitecrm:7.15
@@ -118,7 +118,7 @@ services:
       red_interna:
         ipv4_address: 192.168.2.12
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=db_haproxy
       - DB_PORT=3306
       - DB_NAME=suitecrm_a
       - DB_USER=suitecrm_user
@@ -128,7 +128,7 @@ services:
     depends_on:
       - dns
       - firewall
-      - proxysql
+      - db_haproxy
 
   suitecrm_b1:
     image: suitecrm:7.15
@@ -140,7 +140,7 @@ services:
       red_interna:
         ipv4_address: 192.168.2.13
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=db_haproxy
       - DB_PORT=3306
       - DB_NAME=suitecrm_b
       - DB_USER=suitecrm_user
@@ -150,7 +150,7 @@ services:
     depends_on:
       - dns
       - firewall
-      - proxysql
+      - db_haproxy
 
   suitecrm_b2:
     image: suitecrm:7.15
@@ -162,7 +162,7 @@ services:
       red_interna:
         ipv4_address: 192.168.2.14
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=db_haproxy
       - DB_PORT=3306
       - DB_NAME=suitecrm_b
       - DB_USER=suitecrm_user
@@ -172,7 +172,7 @@ services:
     depends_on:
       - dns
       - firewall
-      - proxysql
+      - db_haproxy
 
   # BROKER DE MENSAJERÍA
   rabbitmq:
@@ -193,62 +193,108 @@ services:
     volumes:
       - ./data/rabbitmq:/var/lib/rabbitmq
 
-  # CLÚSTER DE BASE DE DATOS
-  db_master:
-    image: mariadb:10.6
-    container_name: db_master
+   # ========== CLÚSTER GALERA (3 NODOS) ==========
+  galera1:
+    image: mariadb:11.4
+    container_name: galera1
+    hostname: galera1
     networks:
       red_interna:
         ipv4_address: 192.168.2.30
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
+      MARIADB_ROOT_PASSWORD: rootpass
     volumes:
-      - ./data/db_master:/var/lib/mysql
-      - ./servicios/db/init_master.sql:/docker-entrypoint-initdb.d/init.sql
-    command: --server-id=1 --log-bin=mysql-bin --binlog-format=row
+      - ./data/galera1:/var/lib/mysql
+      - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
+      - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: ["mariadbd", "--wsrep-new-cluster", "--wsrep-node-name=galera1", "--wsrep-node-address=galera1"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  db_slave1:
-    image: mariadb:10.6
-    container_name: db_slave1
+  galera2:
+    image: mariadb:11.4
+    container_name: galera2
+    hostname: galera2
     networks:
       red_interna:
         ipv4_address: 192.168.2.31
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
+      MARIADB_ROOT_PASSWORD: rootpass
     volumes:
-      - ./data/db_slave1:/var/lib/mysql
-      - ./servicios/db/init_slave.sh:/docker-entrypoint-initdb.d/init_slave.sh
-    command: --server-id=2 --log-bin=mysql-bin --binlog-format=row --read-only=1
+      - ./data/galera2:/var/lib/mysql
+      - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
+      - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: ["mariadbd", "--wsrep-node-name=galera2", "--wsrep-node-address=galera2"]
     depends_on:
-      - db_master
+      - galera1
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  db_slave2:
-    image: mariadb:10.6
-    container_name: db_slave2
+  galera3:
+    image: mariadb:11.4
+    container_name: galera3
+    hostname: galera3
     networks:
       red_interna:
         ipv4_address: 192.168.2.32
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
+      MARIADB_ROOT_PASSWORD: rootpass
     volumes:
-      - ./data/db_slave2:/var/lib/mysql
-      - ./servicios/db/init_slave.sh:/docker-entrypoint-initdb.d/init_slave.sh
-    command: --server-id=3 --log-bin=mysql-bin --binlog-format=row --read-only=1
+      - ./data/galera3:/var/lib/mysql
+      - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
+      - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: ["mariadbd", "--wsrep-node-name=galera3", "--wsrep-node-address=galera3"]
     depends_on:
-      - db_master
+      - galera1
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  proxysql:
-    image: proxysql/proxysql:2.5.5
-    container_name: proxysql
+  # ========== BALANCEADOR TCP (HAProxy) ==========
+  db_haproxy:
+    image: haproxy:2.8
+    container_name: db_haproxy
     networks:
+      red_dmz:
+        ipv4_address: 192.168.1.8
       red_interna:
         ipv4_address: 192.168.2.33
+    ports:
+      - "3306:3306"   # opcional, si quieres acceso externo
     volumes:
-      - ./servicios/proxysql/proxysql.cnf:/etc/proxysql.cnf
+      - ./servicios/haproxy_db/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
-      - db_master
-      - db_slave1
-      - db_slave2
+      - galera1
+      - galera2
+      - galera3
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    networks:
+      red_dmz:
+        ipv4_address: 192.168.1.9
+      red_interna:
+        ipv4_address: 192.168.2.34
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db_haproxy
+    depends_on:
+      - db_haproxy
+    restart: unless-stopped  
 
   productor:
     build:
@@ -261,13 +307,13 @@ services:
     command: python -u productor.py
     depends_on:
       - rabbitmq
-      - proxysql
+      - db_haproxy
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin123
-      - DB_HOST=proxysql
+      - DB_HOST=db_haproxy
       - DB_PORT=3306
       - DB_USER=suitecrm_user
       - DB_PASS=secret
