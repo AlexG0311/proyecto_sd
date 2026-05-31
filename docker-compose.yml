@@ -85,7 +85,19 @@ services:
       - suitecrm_b1
       - suitecrm_b2
 
-  # CLIENTE A
+  # ========== REDIS ==========
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.40
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # ========== CLIENTE A ==========
   suitecrm_a1:
     image: suitecrm:7.15
     container_name: suitecrm_a1
@@ -103,10 +115,13 @@ services:
       - DB_PASS=secret
     volumes:
       - suitecrm_a_data:/var/www/html
+      - suitecrm_a_upload:/var/www/html/upload
+      - suitecrm_a_cache:/var/www/html/cache
     depends_on:
       - dns
       - firewall
       - db_haproxy
+      - redis
 
   suitecrm_a2:
     image: suitecrm:7.15
@@ -125,14 +140,18 @@ services:
       - DB_PASS=secret
     volumes:
       - suitecrm_a_data:/var/www/html
+      - suitecrm_a_upload:/var/www/html/upload
+      - suitecrm_a_cache:/var/www/html/cache
     depends_on:
       - dns
       - firewall
       - db_haproxy
+      - redis
 
+  # ========== CLIENTE B ==========
   suitecrm_b1:
     image: suitecrm:7.15
-    command: apache2-foreground
+    container_name: suitecrm_b1
     restart: unless-stopped
     networks:
       red_dmz:
@@ -147,14 +166,17 @@ services:
       - DB_PASS=secret
     volumes:
       - suitecrm_b_data:/var/www/html
+      - suitecrm_b_upload:/var/www/html/upload
+      - suitecrm_b_cache:/var/www/html/cache
     depends_on:
       - dns
       - firewall
       - db_haproxy
+      - redis
 
   suitecrm_b2:
     image: suitecrm:7.15
-    command: apache2-foreground
+    container_name: suitecrm_b2
     restart: unless-stopped
     networks:
       red_dmz:
@@ -169,12 +191,15 @@ services:
       - DB_PASS=secret
     volumes:
       - suitecrm_b_data:/var/www/html
+      - suitecrm_b_upload:/var/www/html/upload
+      - suitecrm_b_cache:/var/www/html/cache
     depends_on:
       - dns
       - firewall
       - db_haproxy
+      - redis
 
-  # BROKER DE MENSAJERÍA
+  # ========== BROKER ==========
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq
@@ -193,7 +218,7 @@ services:
     volumes:
       - ./data/rabbitmq:/var/lib/rabbitmq
 
-   # ========== CLÚSTER GALERA (3 NODOS) ==========
+  # ========== CLÚSTER GALERA ==========
   galera1:
     image: mariadb:11.4
     container_name: galera1
@@ -261,7 +286,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ========== BALANCEADOR TCP (HAProxy) ==========
+  # ========== BALANCEADOR DB ==========
   db_haproxy:
     image: haproxy:2.8
     container_name: db_haproxy
@@ -271,7 +296,7 @@ services:
       red_interna:
         ipv4_address: 192.168.2.33
     ports:
-      - "3306:3306"   # opcional, si quieres acceso externo
+      - "3306:3306"
     volumes:
       - ./servicios/haproxy_db/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
@@ -294,7 +319,7 @@ services:
       ADMINER_DEFAULT_SERVER: db_haproxy
     depends_on:
       - db_haproxy
-    restart: unless-stopped  
+    restart: unless-stopped
 
   productor:
     build:
@@ -327,6 +352,8 @@ services:
     networks:
       red_interna:
         ipv4_address: 192.168.2.22
+      red_dmz:
+        ipv4_address: 192.168.1.22
     command: python -u consumidor.py
     depends_on:
       - rabbitmq
@@ -335,8 +362,16 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin123
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=alexdavidgonzalez2003@gmail.com
+      - SMTP_PASS=fwllthqrukfwvcfg
 
-volumes:          # ← agrega esto
+volumes:
   suitecrm_a_data:
+  suitecrm_a_upload:
+  suitecrm_a_cache:
   suitecrm_b_data:
-
+  suitecrm_b_upload:
+  suitecrm_b_cache:
+  redis_data:
