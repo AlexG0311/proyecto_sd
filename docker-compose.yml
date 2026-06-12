@@ -329,6 +329,8 @@ services:
     networks:
       red_interna:
         ipv4_address: 192.168.2.21
+      red_dmz:
+        ipv4_address: 192.168.1.23
     command: python -u productor.py
     depends_on:
       - rabbitmq

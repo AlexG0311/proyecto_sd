@@ -1,5 +1,11 @@
 CREATE DATABASE IF NOT EXISTS suitecrm_a;
 CREATE DATABASE IF NOT EXISTS suitecrm_b;
+
 CREATE USER IF NOT EXISTS 'suitecrm_user'@'%' IDENTIFIED BY 'secret';
 GRANT ALL PRIVILEGES ON *.* TO 'suitecrm_user'@'%' WITH GRANT OPTION;
+
+-- Usuario monitor SIN contraseña para health checks
+CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY '';
+GRANT SELECT ON *.* TO 'monitor'@'%';
+
 FLUSH PRIVILEGES;
