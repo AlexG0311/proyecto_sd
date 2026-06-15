@@ -232,9 +232,10 @@ services:
       - ./data/galera1:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: ["mariadbd", "--wsrep-new-cluster", "--wsrep-node-name=galera1", "--wsrep-node-address=galera1"]
+      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
+    entrypoint: ["/usr/local/bin/bootstrap.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      test: ["CMD-SHELL", "mariadb-admin ping -uroot -prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -253,11 +254,12 @@ services:
       - ./data/galera2:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: ["mariadbd", "--wsrep-node-name=galera2", "--wsrep-node-address=galera2"]
+      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
+    entrypoint: ["/usr/local/bin/bootstrap.sh"]
     depends_on:
       - galera1
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      test: ["CMD-SHELL", "mariadb-admin ping -uroot -prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -276,11 +278,12 @@ services:
       - ./data/galera3:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: ["mariadbd", "--wsrep-node-name=galera3", "--wsrep-node-address=galera3"]
+      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
+    entrypoint: ["/usr/local/bin/bootstrap.sh"]
     depends_on:
       - galera1
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpass"]
+      test: ["CMD-SHELL", "mariadb-admin ping -uroot -prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -321,11 +324,11 @@ services:
       - db_haproxy
     restart: unless-stopped
 
-  productor:
+  productor_a:
     build:
       context: .
       dockerfile: servicios/broker/Dockerfile
-    container_name: productor
+    container_name: productor_a
     networks:
       red_interna:
         ipv4_address: 192.168.2.21
@@ -345,7 +348,30 @@ services:
       - DB_USER=suitecrm_user
       - DB_PASS=secret
       - DB_NAME=suitecrm_a
-
+      
+  productor_b:
+    build:
+      context: .
+      dockerfile: servicios/broker/Dockerfile
+    container_name: productor_b
+    networks:
+      red_interna:
+        ipv4_address: 192.168.2.24    
+    command: python -u productor.py
+    depends_on:
+      - rabbitmq
+      - db_haproxy
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=admin123
+      - DB_HOST=db_haproxy
+      - DB_PORT=3306
+      - DB_USER=suitecrm_user
+      - DB_PASS=secret
+      - DB_NAME=suitecrm_b         
+    
   consumidor:
     build:
       context: .
