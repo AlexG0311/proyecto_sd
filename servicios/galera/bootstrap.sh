@@ -74,7 +74,21 @@ if cluster_alive; then
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
 elif [ "$SAFE" = "1" ] || [ ! -f "$GRASTATE" ]; then
-    echo ">>> No hay clúster activo. Iniciando bootstrap en este nodo..."
+    echo ">>> No hay clúster activo. Esperando hasta 30s por si otro nodo se anuncia..."
+
+    # Espera corta para evitar bootstraps simultáneos: si durante la espera
+    # se detecta un clúster, unirnos en lugar de iniciar uno nuevo.
+    for i in $(seq 1 30); do
+        if cluster_alive; then
+            echo ">>> Durante la espera se detectó un clúster; uniéndose en lugar de bootstrap."
+            exec /usr/local/bin/docker-entrypoint.sh mariadbd \
+                --wsrep-node-name="$NODE_NAME" \
+                --wsrep-node-address="$NODE_ADDRESS"
+        fi
+        sleep 1
+    done
+
+    echo ">>> No se detectó clúster durante la espera. Iniciando bootstrap en este nodo..."
     exec /usr/local/bin/docker-entrypoint.sh mariadbd \
         --wsrep-new-cluster \
         --wsrep-node-name="$NODE_NAME" \
