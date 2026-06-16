@@ -51,17 +51,15 @@ if cluster_alive; then
     exec gosu mysql mariadbd \
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
-fi
-
-if [ "$SAFE" = "1" ]; then
+elif [ "$SAFE" = "1" ] || [ ! -f "$GRASTATE" ]; then
     echo ">>> No hay clúster activo. Iniciando bootstrap en este nodo..."
     exec gosu mysql mariadbd \
         --wsrep-new-cluster \
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
+else
+    echo ">>> No hay clúster activo y este nodo no está marcado safe_to_bootstrap=1. Iniciando en modo join..."
+    exec gosu mysql mariadbd \
+        --wsrep-node-name="$NODE_NAME" \
+        --wsrep-node-address="$NODE_ADDRESS"
 fi
-
-echo ">>> No hay clúster activo y este nodo no está marcado safe_to_bootstrap=1. Iniciando en modo join..."
-exec gosu mysql mariadbd \
-    --wsrep-node-name="$NODE_NAME" \
-    --wsrep-node-address="$NODE_ADDRESS"
