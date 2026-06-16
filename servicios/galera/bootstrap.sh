@@ -48,18 +48,18 @@ echo ">>> Nodo: $NODE_NAME | seqno: $SEQNO | safe_to_bootstrap: $SAFE"
 
 if cluster_alive; then
     echo ">>> Clúster activo detectado en otro nodo. Uniéndose al clúster..."
-    exec gosu mysql mariadbd \
+    exec /usr/local/bin/docker-entrypoint.sh mariadbd \
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
 elif [ "$SAFE" = "1" ] || [ ! -f "$GRASTATE" ]; then
     echo ">>> No hay clúster activo. Iniciando bootstrap en este nodo..."
-    exec gosu mysql mariadbd \
+    exec /usr/local/bin/docker-entrypoint.sh mariadbd \
         --wsrep-new-cluster \
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
 else
     echo ">>> No hay clúster activo y este nodo no está marcado safe_to_bootstrap=1. Iniciando en modo join..."
-    exec gosu mysql mariadbd \
+    exec /usr/local/bin/docker-entrypoint.sh mariadbd \
         --wsrep-node-name="$NODE_NAME" \
         --wsrep-node-address="$NODE_ADDRESS"
 fi
