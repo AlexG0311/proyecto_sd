@@ -230,7 +230,10 @@ services:
       red_interna:
         ipv4_address: 192.168.2.30
     environment:
-      MARIADB_ROOT_PASSWORD: rootpass
+      - MARIADB_ROOT_PASSWORD=rootpass
+      - WSREP_NODE_NAME=galera1
+      - WSREP_NODE_ADDRESS=galera1
+      - WSREP_CLUSTER_NODES=galera1,galera2,galera3
     volumes:
       - ./data/galera1:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
@@ -252,7 +255,10 @@ services:
       red_interna:
         ipv4_address: 192.168.2.31
     environment:
-      MARIADB_ROOT_PASSWORD: rootpass
+      - MARIADB_ROOT_PASSWORD=rootpass
+      - WSREP_NODE_NAME=galera2
+      - WSREP_NODE_ADDRESS=galera2
+      - WSREP_CLUSTER_NODES=galera1,galera2,galera3
     volumes:
       - ./data/galera2:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
@@ -276,7 +282,10 @@ services:
       red_interna:
         ipv4_address: 192.168.2.32
     environment:
-      MARIADB_ROOT_PASSWORD: rootpass
+      - MARIADB_ROOT_PASSWORD=rootpass
+      - WSREP_NODE_NAME=galera3
+      - WSREP_NODE_ADDRESS=galera3
+      - WSREP_CLUSTER_NODES=galera1,galera2,galera3
     volumes:
       - ./data/galera3:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro

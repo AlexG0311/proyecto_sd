@@ -3,10 +3,14 @@ set -e
 
 DATADIR=/var/lib/mysql
 GRASTATE=$DATADIR/grastate.dat
+NODE_NAME=${WSREP_NODE_NAME:-$(hostname)}
+NODE_ADDRESS=${WSREP_NODE_ADDRESS:-$NODE_NAME}
+PEER_LIST=${WSREP_CLUSTER_NODES:-galera1,galera2,galera3}
+MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-rootpass}
 
 get_seqno() {
     if [ -f "$GRASTATE" ]; then
-        grep "seqno:" "$GRASTATE" | awk '{print $2}'
+        grep '^seqno:' "$GRASTATE" | awk '{print $2}'
     else
         echo "-1"
     fi
@@ -14,30 +18,50 @@ get_seqno() {
 
 get_safe_to_bootstrap() {
     if [ -f "$GRASTATE" ]; then
-        grep "safe_to_bootstrap:" "$GRASTATE" | awk '{print $2}'
+        grep '^safe_to_bootstrap:' "$GRASTATE" | awk '{print $2}'
     else
         echo "0"
     fi
 }
 
+cluster_alive() {
+    for host in ${PEER_LIST//,/ }; do
+        if [ "$host" = "$NODE_NAME" ]; then
+            continue
+        fi
+
+        if mysqladmin ping -h "$host" -uroot -p"$MYSQL_ROOT_PASSWORD" --silent 2>/dev/null; then
+            if mysql -h "$host" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+                -e "SHOW STATUS LIKE 'wsrep_cluster_status'" 2>/dev/null | grep -q Primary; then
+                return 0
+            fi
+        fi
+    done
+
+    return 1
+}
+
 SEQNO=$(get_seqno)
 SAFE=$(get_safe_to_bootstrap)
-NODE_NAME=${WSREP_NODE_NAME:-$(hostname)}
 
 echo ">>> Nodo: $NODE_NAME | seqno: $SEQNO | safe_to_bootstrap: $SAFE"
 
-if [ ! -f "$GRASTATE" ] || [ "$SAFE" = "1" ]; then
-    echo ">>> Iniciando como nodo bootstrap..."
+if cluster_alive; then
+    echo ">>> Clúster activo detectado en otro nodo. Uniéndose al clúster..."
+    exec gosu mysql mariadbd \
+        --wsrep-node-name="$NODE_NAME" \
+        --wsrep-node-address="$NODE_ADDRESS"
+fi
 
+if [ "$SAFE" = "1" ]; then
+    echo ">>> No hay clúster activo. Iniciando bootstrap en este nodo..."
     exec gosu mysql mariadbd \
         --wsrep-new-cluster \
         --wsrep-node-name="$NODE_NAME" \
-        --wsrep-node-address="$NODE_NAME"
-
-else
-    echo ">>> Uniéndose al clúster existente..."
-
-    exec gosu mysql mariadbd \
-        --wsrep-node-name="$NODE_NAME" \
-        --wsrep-node-address="$NODE_NAME"
+        --wsrep-node-address="$NODE_ADDRESS"
 fi
+
+echo ">>> No hay clúster activo y este nodo no está marcado safe_to_bootstrap=1. Iniciando en modo join..."
+exec gosu mysql mariadbd \
+    --wsrep-node-name="$NODE_NAME" \
+    --wsrep-node-address="$NODE_ADDRESS"
