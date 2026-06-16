@@ -238,8 +238,7 @@ services:
       - ./data/galera1:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
-    entrypoint: ["/usr/local/bin/bootstrap.sh"]
+    command: ["mariadbd", "--wsrep-new-cluster", "--wsrep-node-name=galera1", "--wsrep-node-address=galera1"]
     healthcheck:
       test: ["CMD-SHELL", "mariadb-admin ping -uroot -prootpass"]
       interval: 10s
@@ -263,8 +262,7 @@ services:
       - ./data/galera2:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
-    entrypoint: ["/usr/local/bin/bootstrap.sh"]
+    command: ["mariadbd", "--wsrep-node-name=galera2", "--wsrep-node-address=galera2"]
     depends_on:
       - galera1
     healthcheck:
@@ -290,8 +288,7 @@ services:
       - ./data/galera3:/var/lib/mysql
       - ./servicios/galera/my.cnf:/etc/mysql/conf.d/galera.cnf:ro
       - ./servicios/galera/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./servicios/galera/bootstrap.sh:/usr/local/bin/bootstrap.sh
-    entrypoint: ["/usr/local/bin/bootstrap.sh"]
+    command: ["mariadbd", "--wsrep-node-name=galera3", "--wsrep-node-address=galera3"]
     depends_on:
       - galera1
     healthcheck:
