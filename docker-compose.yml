@@ -19,6 +19,9 @@ services:
   dns:
     image: internetsystemsconsortium/bind9:9.18
     container_name: dns
+    ports:
+      - "192.168.100.122:53:53/udp"
+      - "192.168.100.122:53:53/tcp"
     networks:
       red_externa:
         ipv4_address: 192.168.0.2
@@ -35,6 +38,8 @@ services:
   firewall:
     build: ./servicios/firewall
     container_name: firewall
+    ports:
+      - "80:80"
     privileged: true
     networks:
       red_externa:
@@ -50,8 +55,6 @@ services:
   proxy:
     image: nginx:alpine
     container_name: reverse_proxy
-    ports:
-      - "80:80"
     networks:
       red_dmz:
         ipv4_address: 192.168.1.5
@@ -298,8 +301,7 @@ services:
         ipv4_address: 192.168.1.8
       red_interna:
         ipv4_address: 192.168.2.33
-    ports:
-      - "3306:3306"
+    
     volumes:
       - ./servicios/haproxy_db/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
@@ -317,7 +319,8 @@ services:
       red_interna:
         ipv4_address: 192.168.2.34
     ports:
-      - "8080:8080"
+        - "8080:8080"
+    
     environment:
       ADMINER_DEFAULT_SERVER: db_haproxy
     depends_on:
