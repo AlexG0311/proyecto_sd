@@ -24,6 +24,20 @@ get_safe_to_bootstrap() {
     fi
 }
 
+datadir_is_empty() {
+    [ -z "$(find "$DATADIR" -mindepth 1 -maxdepth 1 2>/dev/null | head -n 1)" ]
+}
+
+has_system_schema() {
+    [ -d "$DATADIR/mysql" ]
+}
+
+cleanup_partial_datadir() {
+    echo ">>> Directorio de datos parcial detectado en $DATADIR"
+    echo ">>> Limpiando archivos viejos antes de inicializar..."
+    find "$DATADIR" -mindepth 1 -maxdepth 1 -not -name lost+found -exec rm -rf {} +
+}
+
 cluster_alive() {
     for host in ${PEER_LIST//,/ }; do
         if [ "$host" = "$NODE_NAME" ]; then
@@ -40,6 +54,14 @@ cluster_alive() {
 
     return 1
 }
+
+if [ ! -d "$DATADIR" ]; then
+    mkdir -p "$DATADIR"
+fi
+
+if ! has_system_schema && ! datadir_is_empty; then
+    cleanup_partial_datadir
+fi
 
 SEQNO=$(get_seqno)
 SAFE=$(get_safe_to_bootstrap)
